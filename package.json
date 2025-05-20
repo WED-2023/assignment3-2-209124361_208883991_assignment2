@@ -4,7 +4,8 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node main.js",
+    "test": "jest --detectOpenHandles"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,8 @@
     "pg": "^8.2.1"
   },
   "devDependencies": {
-    "mysql": "^2.18.1"
+    "mysql": "^2.18.1",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
   }
 }
