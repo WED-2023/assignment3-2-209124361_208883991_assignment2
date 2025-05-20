@@ -26,21 +26,6 @@ CREATE TABLE IF NOT EXISTS recipe_progress (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- Create last_searches table
-CREATE TABLE IF NOT EXISTS last_searches (
-    search_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    query VARCHAR(255),
-    cuisines VARCHAR(255),
-    diets VARCHAR(255),
-    intolerances VARCHAR(255),
-    limit_num INT,
-    sort VARCHAR(50),
-    results JSON,
-    search_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
-
 -- Create family_recipes table
 CREATE TABLE IF NOT EXISTS family_recipes (
     recipe_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -51,5 +36,18 @@ CREATE TABLE IF NOT EXISTS family_recipes (
     ingredients JSON,
     instructions JSON,
     photos JSON,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- Create last_searches table - only store search parameters
+CREATE TABLE IF NOT EXISTS last_searches (
+    user_id INT PRIMARY KEY,
+    query VARCHAR(255),
+    cuisines VARCHAR(255),
+    diets VARCHAR(255),
+    intolerances VARCHAR(255),
+    limit_num INT,
+    sort VARCHAR(50),
+    search_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 ); 
