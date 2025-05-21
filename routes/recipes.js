@@ -105,9 +105,12 @@ router.get("/:userId/recipes/:recipeId/progress", async (req, res, next) => {
  */
 router.post("/:userId/recipes/:recipeId/progress", async (req, res, next) => {
   try {
-    const { completedSteps } = req.body;
-    await recipes_utils.saveRecipeProgress(req.params.userId, req.params.recipeId, completedSteps);
-    res.send({ completedSteps });
+    const { step_number } = req.body;
+    if (step_number === undefined) {
+      return res.status(400).send({ message: "step_number is required" });
+    }
+    await recipes_utils.saveRecipeProgress(req.params.userId, req.params.recipeId, step_number);
+    res.send({ last_step: step_number });
   } catch (error) {
     next(error);
   }

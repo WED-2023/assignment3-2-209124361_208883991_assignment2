@@ -152,10 +152,10 @@ async function markAsFavorite(user_id, recipe_id) {
 async function getRecipeProgress(user_id, recipe_id) {
     try {
         const progress = await DButils.execQuery(
-            `SELECT completed_steps FROM recipe_progress WHERE user_id = ? AND recipe_id = ?`,
+            `SELECT last_step FROM recipe_progress WHERE user_id = ? AND recipe_id = ?`,
             [user_id, recipe_id]
         );
-        return progress[0] || { completedSteps: [] };
+        return progress[0] || { last_step: 0 };
     } catch (error) {
         throw error;
     }
@@ -164,24 +164,15 @@ async function getRecipeProgress(user_id, recipe_id) {
 /**
  * Save recipe progress
  */
-async function saveRecipeProgress(user_id, recipe_id, completedSteps) {
+async function saveRecipeProgress(user_id, recipe_id, step_number) {
     try {
-        // First validate that the recipe exists in the API
-        try {
-            await getRecipeInformation(recipe_id);
-        } catch (error) {
-            if (error.response && error.response.status === 404) {
-                throw { status: 404, message: "Recipe not found" };
-            }
-            throw error;
-        }
 
         // If recipe exists, save the progress
         await DButils.execQuery(
-            `INSERT INTO recipe_progress (user_id, recipe_id, completed_steps) 
+            `INSERT INTO recipe_progress (user_id, recipe_id, last_step) 
              VALUES (?, ?, ?) 
-             ON DUPLICATE KEY UPDATE completed_steps = ?`,
-            [user_id, recipe_id, JSON.stringify(completedSteps), JSON.stringify(completedSteps)]
+             ON DUPLICATE KEY UPDATE last_step = ?`,
+            [user_id, recipe_id, step_number, step_number]
         );
     } catch (error) {
         throw error;

@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS favorites (
 CREATE TABLE IF NOT EXISTS recipe_progress (
     user_id INT,
     recipe_id INT,
-    completed_steps JSON,
+    last_step INT DEFAULT 0,
     PRIMARY KEY (user_id, recipe_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
