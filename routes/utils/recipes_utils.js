@@ -253,6 +253,78 @@ async function getLastSearch(user_id) {
     }
 }
 
+/**
+ * Get user's family recipes
+ */
+async function getFamilyRecipes(user_id) {
+    try {
+        const recipes = await DButils.execQuery(
+            `SELECT * FROM family_recipes WHERE user_id = ?`,
+            [user_id]
+        );
+        return recipes;
+    } catch (error) {
+        throw error;
+    }
+}
+
+/**
+ * Get recipe instructions
+ */
+async function getRecipeInstructions(recipe_id) {
+    // ❶ first check local DB (family_recipes)
+    const rows = await DButils.execQuery(
+        "SELECT instructions, analyzedInstructions FROM family_recipes WHERE recipe_id = ?",
+        [recipe_id]
+    );
+    if (rows.length) {
+        return {
+            instructions: rows[0].instructions,
+            analyzedInstructions: rows[0].analyzedInstructions || []
+        };
+    }
+
+    // ❷ otherwise forward to Spoonacular
+    try {
+        const { data } = await axios.get(
+            `${api_domain}/${recipe_id}/information`,
+            { params: { apiKey: process.env.spooncular_apiKey } }
+        );
+        return {
+            instructions: data.instructions,
+            analyzedInstructions: data.analyzedInstructions
+        };
+    } catch (err) {
+        if (err.response && err.response.status === 404)
+            throw { status: 404, message: "recipe not found" };
+        throw err;
+    }
+}
+
+/**
+ * Create a new recipe
+ */
+async function createRecipe(recipe_data) {
+    try {
+        const result = await DButils.execQuery(
+            `INSERT INTO family_recipes (user_id, title, created_by, traditional_date, ingredients, instructions, photos) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+                recipe_data.user_id,
+                recipe_data.title,
+                recipe_data.created_by,
+                recipe_data.traditional_date,
+                JSON.stringify(recipe_data.ingredients),
+                JSON.stringify(recipe_data.instructions),
+                JSON.stringify(recipe_data.photos || [])
+            ]
+        );
+        return result.insertId;
+    } catch (error) {
+        throw error;
+    }
+}
+
 exports.getRecipeDetails = getRecipeDetails;
 exports.searchRecipes = searchRecipes;
 exports.getRandomRecipes = getRandomRecipes;
@@ -263,6 +335,9 @@ exports.getRecipeProgress = getRecipeProgress;
 exports.saveRecipeProgress = saveRecipeProgress;
 exports.saveLastSearch = saveLastSearch;
 exports.getLastSearch = getLastSearch;
+exports.getFamilyRecipes = getFamilyRecipes;
+exports.getRecipeInstructions = getRecipeInstructions;
+exports.createRecipe = createRecipe;
 
 
 

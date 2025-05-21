@@ -47,4 +47,17 @@ router.get('/favorites', async (req,res,next) => {
   }
 });
 
+/**
+ * Public  – get a user's family recipes (no login required)
+ */
+router.get('/:userId/family_recipes', async (req, res, next) => {
+    try {
+        const recipes = await recipe_utils.getFamilyRecipes(req.params.userId);
+        if (recipes.length === 0) return res.sendStatus(204);
+        res.send(recipes);
+    } catch (err) {
+        next(err);
+    }
+});
+
 module.exports = router;

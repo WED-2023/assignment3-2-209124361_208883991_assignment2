@@ -99,6 +99,11 @@ const server = app.listen(port, () => {
   console.log(`Server listen on port ${port}`);
 });
 
+// Export server for testing purposes
+if (process.env.NODE_ENV === 'test') {
+  global.server = server;
+}
+
 process.on("SIGINT", function () {
   if (server) {
     server.close(() => console.log("server closed"));
