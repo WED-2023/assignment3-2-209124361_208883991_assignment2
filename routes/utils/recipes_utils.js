@@ -189,23 +189,13 @@ async function saveRecipeProgress(user_id, recipe_id, completedSteps) {
 }
 
 /**
- * Save last search parameters
+ * Save recipe to user history
  */
-async function saveLastSearch(user_id, search_params) {
+async function saveLastSearch(user_id, recipe_id) {
     try {
         await DButils.execQuery(
-            `INSERT INTO last_searches (user_id, query, cuisines, diets, intolerances, limit_num, sort) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE 
-                query = VALUES(query),
-                cuisines = VALUES(cuisines),
-                diets = VALUES(diets),
-                intolerances = VALUES(intolerances),
-                limit_num = VALUES(limit_num),
-                sort = VALUES(sort),
-                search_date = CURRENT_TIMESTAMP`,
-            [user_id, search_params.query, search_params.cuisines, search_params.diets, 
-             search_params.intolerances, search_params.limit, search_params.sort]
+            `INSERT INTO user_history (user_id, recipe_id) VALUES (?, ?)`,
+            [user_id, recipe_id]
         );
     } catch (error) {
         throw error;
@@ -213,41 +203,137 @@ async function saveLastSearch(user_id, search_params) {
 }
 
 /**
- * Get last search parameters and fetch fresh results
+ * Get last 3 recipes from user history
  */
 async function getLastSearch(user_id) {
     try {
-        // Get last search parameters
-        const lastSearch = await DButils.execQuery(
-            `SELECT * FROM last_searches WHERE user_id = ?`,
+        const lastRecipes = await DButils.execQuery(
+            `SELECT recipe_id FROM user_history 
+             WHERE user_id = ? 
+             ORDER BY timestamp DESC 
+             LIMIT 3`,
             [user_id]
         );
 
-        if (!lastSearch || lastSearch.length === 0) {
+        if (!lastRecipes || lastRecipes.length === 0) {
             return null;
         }
 
-        const searchParams = lastSearch[0];
+        // Get full recipe details from API
+        const recipe_ids = lastRecipes.map(recipe => recipe.recipe_id);
+        const recipes_info = await getRecipesPreview(recipe_ids);
         
-        // Fetch fresh results using the stored parameters
-        const results = await searchRecipes(
-            searchParams.query,
-            searchParams.cuisines,
-            searchParams.diets,
-            searchParams.intolerances,
-            searchParams.limit_num,
-            searchParams.sort
-        );
+        return recipes_info;
+    } catch (error) {
+        throw error;
+    }
+}
 
+/**
+ * Get user's family recipes
+ */
+async function getFamilyRecipes(user_id) {
+    try {
+        const recipes = await DButils.execQuery(
+            `SELECT * FROM family_recipes WHERE user_id = ?`,
+            [user_id]
+        );
+        return recipes;
+    } catch (error) {
+        throw error;
+    }
+}
+
+/**
+ * Get recipe instructions
+ */
+async function getRecipeInstructions(recipe_id) {
+    // ❶ first check local DB (family_recipes)
+    const rows = await DButils.execQuery(
+        "SELECT instructions, analyzedInstructions FROM family_recipes WHERE recipe_id = ?",
+        [recipe_id]
+    );
+    if (rows.length) {
         return {
-            query: searchParams.query,
-            cuisines: searchParams.cuisines,
-            diets: searchParams.diets,
-            intolerances: searchParams.intolerances,
-            limit: searchParams.limit_num,
-            sort: searchParams.sort,
-            results: results
+            instructions: rows[0].instructions,
+            analyzedInstructions: rows[0].analyzedInstructions || []
         };
+    }
+
+    // ❷ otherwise forward to Spoonacular
+    try {
+        const { data } = await axios.get(
+            `${api_domain}/${recipe_id}/information`,
+            { params: { apiKey: process.env.spooncular_apiKey } }
+        );
+        return {
+            instructions: data.instructions,
+            analyzedInstructions: data.analyzedInstructions
+        };
+    } catch (err) {
+        if (err.response && err.response.status === 404)
+            throw { status: 404, message: "recipe not found" };
+        throw err;
+    }
+}
+
+/**
+ * Create a new recipe
+ */
+async function createRecipe(recipe_data) {
+    try {
+        const result = await DButils.execQuery(
+            `INSERT INTO family_recipes (user_id, title, created_by, traditional_date, ingredients, instructions, photos) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+                recipe_data.user_id,
+                recipe_data.title,
+                recipe_data.created_by,
+                recipe_data.traditional_date,
+                JSON.stringify(recipe_data.ingredients),
+                JSON.stringify(recipe_data.instructions),
+                JSON.stringify(recipe_data.photos || [])
+            ]
+        );
+        return result.insertId;
+    } catch (error) {
+        throw error;
+    }
+}
+
+/**
+ * Create a new user recipe
+ */
+async function createUserRecipe(recipe_data) {
+    try {
+        const result = await DButils.execQuery(
+            `INSERT INTO user_recipes (user_id, title, description, ingredients, instructions, photos) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                recipe_data.user_id,
+                recipe_data.title,
+                recipe_data.description,
+                JSON.stringify(recipe_data.ingredients),
+                JSON.stringify(recipe_data.instructions),
+                JSON.stringify(recipe_data.photos || [])
+            ]
+        );
+        return result.insertId;
+    } catch (error) {
+        throw error;
+    }
+}
+
+/**
+ * Get user's created recipes
+ */
+async function getUserRecipes(user_id) {
+    try {
+        const recipes = await DButils.execQuery(
+            `SELECT * FROM user_recipes WHERE user_id = ? ORDER BY created_at DESC`,
+            [user_id]
+        );
+        return recipes;
     } catch (error) {
         throw error;
     }
@@ -263,6 +349,8 @@ exports.getRecipeProgress = getRecipeProgress;
 exports.saveRecipeProgress = saveRecipeProgress;
 exports.saveLastSearch = saveLastSearch;
 exports.getLastSearch = getLastSearch;
-
-
-
+exports.getFamilyRecipes = getFamilyRecipes;
+exports.getRecipeInstructions = getRecipeInstructions;
+exports.createRecipe = createRecipe;
+exports.createUserRecipe = createUserRecipe;
+exports.getUserRecipes = getUserRecipes;

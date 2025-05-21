@@ -20,7 +20,7 @@ router.get("/random", async (req, res, next) => {
  */
 router.get("/search", async (req, res, next) => {
   try {
-    const { query, cuisines, diets, intolerances, limit = 10, sort } = req.query;
+    const { query, cuisines, diets, intolerances, limit = 5, sort } = req.query;
     const results = await recipes_utils.searchRecipes(
       query, 
       cuisines, 
@@ -29,18 +29,6 @@ router.get("/search", async (req, res, next) => {
       limit, 
       sort
     );
-    
-    // Save search parameters if user is logged in
-    if (req.session && req.session.user_id) {
-      await recipes_utils.saveLastSearch(req.session.user_id, {
-        query,
-        cuisines,
-        diets,
-        intolerances,
-        limit,
-        sort
-      });
-    }
     
     if (results.length === 0) {
       res.status(204).send();
@@ -138,27 +126,156 @@ router.get("/:recipeId", async (req, res, next) => {
 });
 
 /**
- * This path returns the user's last search
+ * This path records a recipe view in user history
  */
-router.get("/users/:userId/search/last", async (req, res, next) => {
+router.post("/:recipeId/view", async (req, res, next) => {
   try {
-    const lastSearch = await recipes_utils.getLastSearch(req.params.userId);
-    if (!lastSearch) {
+    if (!req.session || !req.session.user_id) {
+      return res.status(401).send({ message: "unauthorized" });
+    }
+    
+    await recipes_utils.saveLastSearch(req.session.user_id, req.params.recipeId);
+    res.status(200).send({ message: "Recipe view recorded" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * This path returns the user's last 3 viewed recipes
+ */
+router.get("/:userId/search/last", async (req, res, next) => {
+  try {
+    const lastRecipes = await recipes_utils.getLastSearch(req.params.userId);
+    if (!lastRecipes) {
       res.status(204).send();
     } else {
-      res.send({
-        query: lastSearch.query,
-        cuisines: lastSearch.cuisines,
-        diets: lastSearch.diets,
-        intolerances: lastSearch.intolerances,
-        limit: lastSearch.limit_num,
-        sort: lastSearch.sort,
-        results: JSON.parse(lastSearch.results)
-      });
+      res.send(lastRecipes);
     }
   } catch (error) {
     next(error);
   }
+});
+
+/**
+ * This path returns a user's family recipes
+ */
+router.get("/users/:userId/family_recipes", async (req, res, next) => {
+    try {
+        const recipes = await recipes_utils.getFamilyRecipes(req.params.userId);
+        if (recipes.length === 0) {
+            res.status(204).send();
+        } else {
+            res.send(recipes);
+        }
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * This path returns a recipe's instructions
+ */
+router.get("/:recipeId/instructions", async (req, res, next) => {
+    try {
+        const instructions = await recipes_utils.getRecipeInstructions(req.params.recipeId);
+        res.send(instructions);
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * This path creates a new recipe
+ */
+router.post("/", async (req, res, next) => {
+    try {
+        // Check for session first
+        if (!req.session || !req.session.user_id) {
+            return res.status(401).send({ message: "unauthorized" });
+        }
+
+        const recipe_data = {
+            user_id: req.session.user_id,
+            title: req.body.title,
+            created_by: req.body.created_by,
+            traditional_date: req.body.traditional_date,
+            ingredients: req.body.ingredients,
+            instructions: req.body.instructions,
+            photos: req.body.photos
+        };
+
+        // Validate required fields and data types
+        if (
+            !recipe_data.title ||
+            !Array.isArray(recipe_data.ingredients) ||
+            !Array.isArray(recipe_data.instructions) ||
+            recipe_data.ingredients.length === 0 ||
+            recipe_data.instructions.length === 0
+        ) {
+            return res.status(400).send({ message: "invalid recipe data" });
+        }
+
+        // If validation passes, create the recipe
+        const recipe_id = await recipes_utils.createRecipe(recipe_data);
+        res.status(201).send({ recipe_id });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * This path creates a new user recipe
+ */
+router.post("/user-recipes", async (req, res, next) => {
+    try {
+        // Check for session first
+        if (!req.session || !req.session.user_id) {
+            return res.status(401).send({ message: "unauthorized" });
+        }
+
+        const recipe_data = {
+            user_id: req.session.user_id,
+            title: req.body.title,
+            description: req.body.description,
+            ingredients: req.body.ingredients,
+            instructions: req.body.instructions,
+            photos: req.body.photos
+        };
+
+        // Validate required fields and data types
+        if (
+            !recipe_data.title ||
+            !Array.isArray(recipe_data.ingredients) ||
+            !Array.isArray(recipe_data.instructions) ||
+            recipe_data.ingredients.length === 0 ||
+            recipe_data.instructions.length === 0
+        ) {
+            return res.status(400).send({ message: "invalid recipe data" });
+        }
+
+        // If validation passes, create the recipe
+        const recipe_id = await recipes_utils.createUserRecipe(recipe_data);
+        res.status(201).send({ recipe_id });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * This path returns a user's created recipes
+ */
+router.get("/users/:userId/recipes", async (req, res, next) => {
+    try {
+        const recipes = await recipes_utils.getUserRecipes(req.params.userId);
+        if (recipes.length === 0) {
+            res.status(204).send();
+        } else {
+            res.send(recipes);
+        }
+    } catch (error) {
+        next(error);
+    }
 });
 
 module.exports = router;

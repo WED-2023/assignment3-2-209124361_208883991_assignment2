@@ -13,30 +13,24 @@ const pool = mysql.createPool({
 
 const promisePool = pool.promise();
 
-const execQuery = async (sql, params = []) => {
+const execQuery = async function (sql, params = []) {
   const connection = await promisePool.getConnection();
   try {
-    // Only start transaction for write operations
-    if (sql.trim().toLowerCase().startsWith('select')) {
-      const [results] = await connection.query(sql, params);
-      return results;
-    } else {
-      await connection.beginTransaction();
-      const [results] = await connection.query(sql, params);
-      await connection.commit();
-      return results;
-    }
-  } catch (error) {
-    if (!sql.trim().toLowerCase().startsWith('select')) {
-      await connection.rollback();
-    }
-    throw error;
+    const isSelect = sql.trim().toLowerCase().startsWith("select");
+    if (!isSelect) await connection.query("START TRANSACTION");
+
+    const [results] = await connection.query(sql, params);
+
+    if (!isSelect) await connection.query("COMMIT");
+    return results;
+  } catch (err) {
+    if (!isSelect) await connection.query("ROLLBACK");
+    throw err;
   } finally {
-    connection.release();
+    await connection.release();
   }
 };
 
 module.exports = {
   execQuery
 };
-

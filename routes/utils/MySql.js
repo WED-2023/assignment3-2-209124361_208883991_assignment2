@@ -8,7 +8,7 @@ connectionLimit:4,
   user: process.env.user,//"root"
   password: process.env.DBpassword,
   database:process.env.database
-  // database:"mydb"
+
 }
 const pool = new mysql.createPool(config);
 
@@ -45,10 +45,3 @@ const query = (sql, binding) => {
   });
 };
 module.exports = { pool, connection, query };
-
-
-
-
-
-
-

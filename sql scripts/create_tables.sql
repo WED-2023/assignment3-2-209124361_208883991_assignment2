@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
     lastname VARCHAR(255) NOT NULL,
     country VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL
+    email VARCHAR(255) NOT NULL,
+    profilePic VARCHAR(255)
 );
 
 -- Create favorites table
@@ -39,15 +40,24 @@ CREATE TABLE IF NOT EXISTS family_recipes (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- Create last_searches table - only store search parameters
-CREATE TABLE IF NOT EXISTS last_searches (
-    user_id INT PRIMARY KEY,
-    query VARCHAR(255),
-    cuisines VARCHAR(255),
-    diets VARCHAR(255),
-    intolerances VARCHAR(255),
-    limit_num INT,
-    sort VARCHAR(50),
-    search_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+-- Create user_recipes table
+CREATE TABLE IF NOT EXISTS user_recipes (
+    recipe_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    ingredients JSON,
+    instructions JSON,
+    photos JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- Create user_history table
+CREATE TABLE IF NOT EXISTS user_history (
+    user_id INT,
+    recipe_id INT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, recipe_id, timestamp),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 ); 
