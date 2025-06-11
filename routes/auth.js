@@ -51,8 +51,29 @@ router.post("/login", async (req, res, next) => {
             return res.status(401).send({ success: false, message: "Username or Password incorrect" });
         }
 
+        // Create a session
         req.session.user_id = users[0].user_id;
-        res.status(200).send({ success: true, message: "login succeeded" });
+
+        // Send back user data and token
+        const user = {
+            id: users[0].user_id,
+            username: users[0].username,
+            firstname: users[0].firstname,
+            lastname: users[0].lastname,
+            email: users[0].email,
+            country: users[0].country,
+            profilePic: users[0].profilePic
+        };
+
+        // Generate a token (you might want to use JWT here)
+        const token = req.session.id; // Using session ID as token for now
+
+        res.status(200).send({ 
+            success: true, 
+            message: "login succeeded",
+            user,
+            token
+        });
     } catch (error) {
         next(error);
     }

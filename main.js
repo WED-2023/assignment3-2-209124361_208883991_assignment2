@@ -34,21 +34,18 @@ app.get("/",function(req,res)
   res.sendFile(path.join(__dirname, '../assignment-3-3-frontend/dist/index.html'));
   //local:
   //res.sendFile(__dirname+"/index.html");
-
 });
 
-// app.use(cors());
-// app.options("*", cors());
+// Configure CORS
+const corsConfig = {
+  origin: 'http://localhost:8080', // Frontend URL
+  credentials: true
+};
 
-// const corsConfig = {
-//   origin: true,
-//   credentials: true
-// };
+app.use(cors(corsConfig));
+app.options("*", cors(corsConfig));
 
-// app.use(cors(corsConfig));
-// app.options("*", cors(corsConfig));
-
-var port = process.env.PORT || "80"; //local=3000 remote=80
+var port = process.env.PORT || "3000"; //local=3000 remote=80
 //#endregion
 const user = require("./routes/user");
 const recipes = require("./routes/recipes");
@@ -91,14 +88,15 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500).send({ message: err.message, success: false });
 });
 
-// const server = app.listen(port, () => {
-//   console.log(`Server listen on port ${port}`);
-// });
+const server = app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
 
-// process.on("SIGINT", function () {
-//   if (server) {
-//     server.close(() => console.log("server closed"));
-//   }
-//   process.exit();
-// });
+process.on("SIGINT", function () {
+  if (server) {
+    server.close(() => console.log("server closed"));
+  }
+  process.exit();
+});
+
 module.exports = app;
