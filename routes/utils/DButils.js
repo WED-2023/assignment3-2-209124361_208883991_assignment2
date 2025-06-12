@@ -15,8 +15,8 @@ const promisePool = pool.promise();
 
 const execQuery = async function (sql, params = []) {
   const connection = await promisePool.getConnection();
+  const isSelect = sql.trim().toLowerCase().startsWith("select");
   try {
-    const isSelect = sql.trim().toLowerCase().startsWith("select");
     if (!isSelect) await connection.query("START TRANSACTION");
 
     const [results] = await connection.query(sql, params);

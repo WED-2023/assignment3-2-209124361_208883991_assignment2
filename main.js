@@ -17,9 +17,11 @@ app.use(
     duration: parseInt(process.env.SESSION_DURATION), // expired after session duration
     activeDuration: parseInt(process.env.ACTIVE_DURATION), // if expiresIn < activeDuration,
     cookie: {
-      httpOnly: false,
+      httpOnly: true, // Prevent JavaScript access to the cookie
+      secure: process.env.NODE_ENV === 'production', // Only send cookie over HTTPS in production
+      sameSite: 'strict', // Protect against CSRF
+      maxAge: parseInt(process.env.SESSION_DURATION) // Explicitly set max age
     }
-    //the session will be extended by activeDuration milliseconds
   })
 );
 app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
