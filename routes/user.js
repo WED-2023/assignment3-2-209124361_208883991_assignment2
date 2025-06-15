@@ -48,6 +48,20 @@ router.get('/favorites', async (req,res,next) => {
 });
 
 /**
+ * This path removes a recipe from the favorites list of the logged-in user
+ */
+router.delete('/favorites/:recipeId', async (req,res,next) => {
+  try{
+    const user_id = req.session.user_id;
+    const recipe_id = req.params.recipeId;
+    await user_utils.removeFromFavorites(user_id, recipe_id);
+    res.status(200).send("The Recipe successfully removed from favorites");
+  } catch(error){
+    next(error);
+  }
+});
+
+/**
  * Public  – get a user's family recipes (no login required)
  */
 router.get('/:userId/family_recipes', async (req, res, next) => {
