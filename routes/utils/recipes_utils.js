@@ -330,6 +330,22 @@ async function getUserRecipes(user_id) {
     }
 }
 
+/**
+ * Check if a recipe has been viewed by a user
+ */
+async function hasViewedRecipe(user_id, recipe_id) {
+    try {
+        const result = await DButils.execQuery(
+            `SELECT COUNT(*) as count FROM user_history 
+             WHERE user_id = ? AND recipe_id = ?`,
+            [user_id, recipe_id]
+        );
+        return result[0].count > 0;
+    } catch (error) {
+        throw error;
+    }
+}
+
 exports.getRecipeDetails = getRecipeDetails;
 exports.searchRecipes = searchRecipes;
 exports.getRandomRecipes = getRandomRecipes;
@@ -345,3 +361,4 @@ exports.getRecipeInstructions = getRecipeInstructions;
 exports.createRecipe = createRecipe;
 exports.createUserRecipe = createUserRecipe;
 exports.getUserRecipes = getUserRecipes;
+exports.hasViewedRecipe = hasViewedRecipe;

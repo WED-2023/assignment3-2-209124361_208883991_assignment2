@@ -281,4 +281,20 @@ router.get("/users/:userId/recipes", async (req, res, next) => {
     }
 });
 
+/**
+ * This path checks if a recipe has been viewed by the user
+ */
+router.get("/:recipeId/viewed", async (req, res, next) => {
+  try {
+    if (!req.session || !req.session.user_id) {
+      return res.status(401).send({ message: "unauthorized" });
+    }
+    
+    const hasViewed = await recipes_utils.hasViewedRecipe(req.session.user_id, req.params.recipeId);
+    res.status(200).send({ viewed: hasViewed });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
