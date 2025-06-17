@@ -5,6 +5,19 @@ const user_utils = require("./utils/user_utils");
 const recipe_utils = require("./utils/recipes_utils");
 
 /**
+ * Check if username is available
+ */
+router.get('/check-username/:username', async (req, res, next) => {
+  try {
+    const username = req.params.username;
+    const users = await DButils.execQuery("SELECT username FROM users WHERE username = ?", [username]);
+    res.status(200).send({ exists: users.length > 0 });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * Authenticate all incoming requests by middleware
  */
 router.use(async function (req, res, next) {
