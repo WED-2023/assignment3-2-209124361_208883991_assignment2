@@ -61,7 +61,7 @@ async function searchRecipes(query, cuisine, diet, intolerances, number, sort) {
                 cuisine: cuisine,
                 diet: diet,
                 intolerances: intolerances,
-                number: number,
+                number: number || 5, // Default to 5 if not specified
                 sort: sort,
                 addRecipeInformation: true,
                 instructionsRequired: true,

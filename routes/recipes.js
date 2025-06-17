@@ -20,13 +20,13 @@ router.get("/random", async (req, res, next) => {
  */
 router.get("/search", async (req, res, next) => {
   try {
-    const { query, cuisines, diets, intolerances, limit = 5, sort } = req.query;
+    const { query, cuisines, diets, intolerances, number = 5, sort } = req.query;
     const results = await recipes_utils.searchRecipes(
       query, 
       cuisines, 
       diets, 
       intolerances, 
-      limit, 
+      number, 
       sort
     );
     
