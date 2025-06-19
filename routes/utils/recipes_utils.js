@@ -35,19 +35,19 @@ async function getRecipeDetails(recipe_id) {
     } = recipe_info.data;
 
     return {
-        id: id,
-        title: title,
-        readyInMinutes: readyInMinutes,
-        image: image,
-        popularity: aggregateLikes,
-        vegan: vegan,
-        vegetarian: vegetarian,
-        glutenFree: glutenFree,
-        servings: servings,
-        instructions: instructions,
-        analyzedInstructions: analyzedInstructions,
+        id,
+        title,
+        readyInMinutes,
+        image,
+        aggregateLikes,
+        vegan,
+        vegetarian,
+        glutenFree,
+        servings,
+        instructions,
+        analyzedInstructions,
         ingredients: extendedIngredients
-    }
+    };
 }
 
 /**
