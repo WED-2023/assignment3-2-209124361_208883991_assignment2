@@ -18,6 +18,42 @@ async function getRecipeInformation(recipe_id) {
  * Get detailed information about a recipe
  */
 async function getRecipeDetails(recipe_id) {
+    // Try to find in family_recipes
+    const familyRows = await DButils.execQuery(
+        "SELECT * FROM family_recipes WHERE recipe_id = ?",
+        [recipe_id]
+    );
+    if (familyRows.length) {
+        const r = familyRows[0];
+        return {
+            id: r.recipe_id,
+            title: r.title,
+            created_by: r.created_by,
+            traditional_date: r.traditional_date,
+            ingredients: typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients,
+            instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
+            photos: typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos
+        };
+    }
+
+    // Try to find in user_recipes
+    const userRows = await DButils.execQuery(
+        "SELECT * FROM user_recipes WHERE recipe_id = ?",
+        [recipe_id]
+    );
+    if (userRows.length) {
+        const r = userRows[0];
+        return {
+            id: r.recipe_id,
+            title: r.title,
+            description: r.description,
+            ingredients: typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients,
+            instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
+            photos: typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos
+        };
+    }
+
+    // Otherwise, call Spoonacular
     let recipe_info = await getRecipeInformation(recipe_id);
     let { 
         id, 
@@ -221,21 +257,6 @@ async function getLastSearch(user_id) {
 }
 
 /**
- * Get user's family recipes
- */
-async function getFamilyRecipes(user_id) {
-    try {
-        const recipes = await DButils.execQuery(
-            `SELECT * FROM family_recipes WHERE user_id = ?`,
-            [user_id]
-        );
-        return recipes;
-    } catch (error) {
-        throw error;
-    }
-}
-
-/**
  * Get recipe instructions
  */
 async function getRecipeInstructions(recipe_id) {
@@ -251,45 +272,8 @@ async function getRecipeInstructions(recipe_id) {
         };
     }
 
-    // ❷ otherwise forward to Spoonacular
-    try {
-        const { data } = await axios.get(
-            `${api_domain}/${recipe_id}/information`,
-            { params: { apiKey: process.env.spooncular_apiKey } }
-        );
-        return {
-            instructions: data.instructions,
-            analyzedInstructions: data.analyzedInstructions
-        };
-    } catch (err) {
-        if (err.response && err.response.status === 404)
-            throw { status: 404, message: "recipe not found" };
-        throw err;
-    }
-}
-
-/**
- * Create a new recipe
- */
-async function createRecipe(recipe_data) {
-    try {
-        const result = await DButils.execQuery(
-            `INSERT INTO family_recipes (user_id, title, created_by, traditional_date, ingredients, instructions, photos) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [
-                recipe_data.user_id,
-                recipe_data.title,
-                recipe_data.created_by,
-                recipe_data.traditional_date,
-                JSON.stringify(recipe_data.ingredients),
-                JSON.stringify(recipe_data.instructions),
-                JSON.stringify(recipe_data.photos || [])
-            ]
-        );
-        return result.insertId;
-    } catch (error) {
-        throw error;
-    }
+    // ❷ do NOT forward to Spoonacular for family recipes
+    throw { status: 404, message: "recipe not found in family_recipes" };
 }
 
 /**
@@ -346,6 +330,20 @@ async function hasViewedRecipe(user_id, recipe_id) {
     }
 }
 
+/**
+ * Get all family recipes (for all users)
+ */
+async function getAllFamilyRecipes() {
+    try {
+        const recipes = await DButils.execQuery(
+            `SELECT * FROM family_recipes`
+        );
+        return recipes;
+    } catch (error) {
+        throw error;
+    }
+}
+
 exports.getRecipeDetails = getRecipeDetails;
 exports.searchRecipes = searchRecipes;
 exports.getRandomRecipes = getRandomRecipes;
@@ -356,9 +354,8 @@ exports.getRecipeProgress = getRecipeProgress;
 exports.saveRecipeProgress = saveRecipeProgress;
 exports.saveLastSearch = saveLastSearch;
 exports.getLastSearch = getLastSearch;
-exports.getFamilyRecipes = getFamilyRecipes;
 exports.getRecipeInstructions = getRecipeInstructions;
-exports.createRecipe = createRecipe;
 exports.createUserRecipe = createUserRecipe;
 exports.getUserRecipes = getUserRecipes;
 exports.hasViewedRecipe = hasViewedRecipe;
+exports.getAllFamilyRecipes = getAllFamilyRecipes;

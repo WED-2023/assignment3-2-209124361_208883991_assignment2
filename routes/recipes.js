@@ -117,9 +117,36 @@ router.post("/:userId/recipes/:recipeId/progress", async (req, res, next) => {
 });
 
 /**
+ * This path returns all family recipes (for all users)
+ */
+router.get("/family_recipes", async (req, res, next) => {
+    try {
+        const recipes = await recipes_utils.getAllFamilyRecipes();
+        if (recipes.length === 0) {
+            res.status(204).send();
+        } else {
+            // Parse JSON fields for ingredients and instructions
+            const parsed = recipes.map(r => ({
+                ...r,
+                ingredients: typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients,
+                instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
+                photos: typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos
+            }));
+            res.send(parsed);
+        }
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
  * This path returns a full details of a recipe by its id
  */
 router.get("/:recipeId", async (req, res, next) => {
+  // Prevent accidental Spoonacular call for 'family_recipes'
+  if (req.params.recipeId === 'family_recipes') {
+    return res.status(404).send({ message: "Not found" });
+  }
   try {
     const recipe = await recipes_utils.getRecipeDetails(req.params.recipeId);
     res.send(recipe);
@@ -161,67 +188,12 @@ router.get("/:userId/search/last", async (req, res, next) => {
 });
 
 /**
- * This path returns a user's family recipes
- */
-router.get("/users/:userId/family_recipes", async (req, res, next) => {
-    try {
-        const recipes = await recipes_utils.getFamilyRecipes(req.params.userId);
-        if (recipes.length === 0) {
-            res.status(204).send();
-        } else {
-            res.send(recipes);
-        }
-    } catch (error) {
-        next(error);
-    }
-});
-
-/**
  * This path returns a recipe's instructions
  */
 router.get("/:recipeId/instructions", async (req, res, next) => {
     try {
         const instructions = await recipes_utils.getRecipeInstructions(req.params.recipeId);
         res.send(instructions);
-    } catch (error) {
-        next(error);
-    }
-});
-
-/**
- * This path creates a new recipe
- */
-router.post("/", async (req, res, next) => {
-    try {
-        // Check for session first
-        if (!req.session || !req.session.user_id) {
-            return res.status(401).send({ message: "unauthorized" });
-        }
-
-        const recipe_data = {
-            user_id: req.session.user_id,
-            title: req.body.title,
-            created_by: req.body.created_by,
-            traditional_date: req.body.traditional_date,
-            ingredients: req.body.ingredients,
-            instructions: req.body.instructions,
-            photos: req.body.photos
-        };
-
-        // Validate required fields and data types
-        if (
-            !recipe_data.title ||
-            !Array.isArray(recipe_data.ingredients) ||
-            !Array.isArray(recipe_data.instructions) ||
-            recipe_data.ingredients.length === 0 ||
-            recipe_data.instructions.length === 0
-        ) {
-            return res.status(400).send({ message: "invalid recipe data" });
-        }
-
-        // If validation passes, create the recipe
-        const recipe_id = await recipes_utils.createRecipe(recipe_data);
-        res.status(201).send({ recipe_id });
     } catch (error) {
         next(error);
     }
